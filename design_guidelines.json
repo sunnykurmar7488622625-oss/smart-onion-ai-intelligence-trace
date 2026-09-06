@@ -1,0 +1,154 @@
+{
+  "theme": "light",
+  "typography": {
+    "headings": {
+      "family": "Outfit, sans-serif",
+      "weights": ["400", "500", "700"],
+      "usage_rules": "No generic sans (Inter/Roboto) for headings. Use tracking-tight for sizes above 32px. H1 max size text-5xl to text-6xl."
+    },
+    "body": {
+      "family": "Manrope, sans-serif",
+      "weights": ["400", "500", "600"],
+      "usage_rules": "Clean, readable, slightly geometric but human-friendly. Use leading-relaxed for long-form text."
+    },
+    "labels": {
+      "family": "Manrope, sans-serif",
+      "style": "uppercase, tracking-[0.2em], text-xs to text-sm, font-bold",
+      "usage_rules": "Used for overlines, status badges, and table headers to ensure extreme clarity."
+    }
+  },
+  "colors": {
+    "archetype": "Organic & Earthy with Technical Accents",
+    "background": {
+      "default": "#FAF9F6",
+      "surface": "#FFFFFF",
+      "subtle": "#F5F4F0"
+    },
+    "text": {
+      "primary": "#1C1917",
+      "secondary": "#57534E",
+      "disabled": "#A8A29E"
+    },
+    "brand": {
+      "primary": "#701A2D",
+      "primary_hover": "#5C1525",
+      "accent": "#059669",
+      "accent_hover": "#047857"
+    },
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    },
+    "ai_vision": {
+      "bounding_box_pass": "rgba(16, 185, 129, 0.8)",
+      "bounding_box_defect": "rgba(239, 68, 68, 0.8)",
+      "overlay_mask": "rgba(0, 0, 0, 0.4)"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "sm": "0 1px 2px 0 rgba(28, 25, 23, 0.05)",
+      "md": "0 4px 6px -1px rgba(28, 25, 23, 0.1), 0 2px 4px -1px rgba(28, 25, 23, 0.06)",
+      "lg": "0 10px 15px -3px rgba(28, 25, 23, 0.1), 0 4px 6px -2px rgba(28, 25, 23, 0.05)"
+    },
+    "borders": {
+      "default": "1px solid #E7E5E4",
+      "focus": "2px solid #701A2D",
+      "radius": "rounded-xl for cards, rounded-full for pills/buttons"
+    },
+    "surfaces": {
+      "glass": "backdrop-blur-xl bg-white/70 border border-white/40 shadow-sm",
+      "solid": "bg-white border border-stone-200"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#701A2D] text-white hover:bg-[#5C1525] rounded-full px-6 py-3 font-medium transition-transform active:scale-95",
+      "secondary": "bg-white border border-[#E7E5E4] text-[#1C1917] hover:bg-[#F5F4F0] rounded-full px-6 py-3 font-medium transition-colors",
+      "touch_target": "Min 48px height for all interactive elements to support farmer-friendly mobile usage."
+    },
+    "cards": {
+      "dashboard": "bg-white rounded-xl border border-stone-200 p-6 hover:shadow-md transition-shadow",
+      "metric": "flex flex-col gap-2 p-6 rounded-xl bg-[#F5F4F0] border border-stone-200"
+    },
+    "camera_scanner": {
+      "container": "relative w-full rounded-2xl overflow-hidden bg-black",
+      "overlay": "absolute inset-0 pointer-events-none border-2 border-[#10B981]/50 rounded-2xl",
+      "controls_wrapper": "absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 backdrop-blur-xl bg-black/60 p-4 rounded-full border border-white/10"
+    },
+    "status_badge": {
+      "pass": "bg-emerald-100 text-emerald-800 border-emerald-200 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
+      "review": "bg-amber-100 text-amber-800 border-amber-200 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
+      "fail": "bg-red-100 text-red-800 border-red-200 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
+    }
+  },
+  "grids": {
+    "landing_bento": "grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8",
+    "dashboard_stats": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
+    "dashboard_main": "grid grid-cols-1 lg:grid-cols-3 gap-6"
+  },
+  "layouts": {
+    "spacing": "Generous spacing. Use p-6 or p-8 for containers. Use gap-8 to gap-16 between major landing page sections.",
+    "navigation": "Sticky glassmorphism header (z-50). Visible links on desktop. Mobile hamburger menu. Solid bottom border on scroll.",
+    "dashboard_wrapper": "Sidebar navigation (desktop) or bottom nav (mobile) with a main content area padded generously (p-4 md:p-8)."
+  },
+  "motion": {
+    "micro_interactions": "Hover states on all buttons/cards. Translate-y [-2px] on card hover. Scale [0.98] on button click.",
+    "page_transitions": "Fade in and slide up (10px) on mount for main content sections.",
+    "camera_scanning": "Pulsing animation on the bounding boxes when AI is processing. Smooth slide-in for result panels."
+  },
+  "accessibility": {
+    "contrast": "Ensure APCA standards. Dark text on light backgrounds. No gray-on-gray.",
+    "focus": "Visible focus rings (2px solid primary color) on all keyboard-navigable elements.",
+    "aria": "Include aria-labels for icon-only buttons (like camera capture, retake).",
+    "testing": "All interactive elements MUST include data-testid attribute (e.g., data-testid='capture-button')."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.pexels.com/photos/16678079/pexels-photo-16678079.jpeg",
+        "category": "hero_background",
+        "description": "Farmer using smartphone to examine crops. Ideal for landing page hero section."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1561461623-87ca0ffc99d6",
+        "category": "feature_ai_vision",
+        "description": "Premium red onion macro close-up. Perfect for demonstrating the AI bounding box overlay concept on the landing page."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1683355739329-cea18ba93f02",
+        "category": "batch_thumbnail",
+        "description": "Pile of red onions. Good for dashboard placeholders or batch list thumbnails."
+      }
+    ],
+    "icons": "Use lucide-react. Standardize stroke-width to 2px for a crisp, professional look."
+  },
+  "instructions_to_main_agent": [
+    "Implement a premium, earthy-yet-technical visual style suitable for a modern AgriTech startup.",
+    "Do NOT build a generic SaaS dashboard. Use 'Clay & Crisp' borders (1px solid, flat background, no heavy dropshadows by default).",
+    "Ensure 'Farmer-Friendly' language: 'Check Onion Quality', 'Create Batch', 'View Reports'. Avoid overly technical jargon.",
+    "For the AI Camera Vision page: The camera preview must dominate the screen (operator-first design). Overlay a stylized target/bounding box when scanning. Use large, fat buttons for 'Capture' and 'Analyze'.",
+    "Use Recharts for the Dashboard and Inspection Result pages (Quality breakdown pie/doughnut charts, storage deterioration line charts).",
+    "Apply 'Glassmorphism' strictly to floating overlays (Sticky Nav, Camera controls, Toast notifications). Use backdrop-blur-xl and a subtle white/40 border.",
+    "For mobile view: Ensure touch targets (buttons, list items) are at least 48px high to accommodate outdoor/field usage by farmers."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid the 'AI slop' aesthetic. Make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition (e.g., transition: all). Always add transitions for specific interactive properties.",
+    "You MUST NOT center align the app container (do not add .App { text-align: center; } in CSS).",
+    "Always use modern button styles like pill-shaped, with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like robot, brain, lightbulb for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "NEVER use placeholder URLs. Use the provided image_urls.",
+    "Prioritize using pre-existing components from src/components/ui.",
+    "Use sonner for toasts, located in /app/frontend/src/components/ui/sonner.js.",
+    "All interactive and key informational elements MUST include a data-testid attribute to facilitate robust automated testing."
+  ]
+}
