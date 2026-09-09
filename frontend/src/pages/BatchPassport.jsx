@@ -6,6 +6,7 @@ import { api, errMsg } from "@/lib/api";
 import { fmtDate, fmtDateTime, fmtQty, SOURCE_LABEL } from "@/lib/format";
 import { GradeSummary } from "@/components/GradeSummary";
 import { StatusBadge } from "@/components/StatusBadge";
+import { EditBatchDialog } from "@/components/EditBatchDialog";
 import { ErrorState, Loader, PageHeader } from "@/components/States";
 
 const ICONS = { BATCH_CREATED: Boxes, INSPECTION: ScanEye, QUALITY_CHANGE: Activity, STORAGE_NOTE: Warehouse, DISPATCH_VERIFICATION: ClipboardCheck, DISPATCHED: Truck };
@@ -33,6 +34,7 @@ export default function BatchPassport() {
         {b.inspection_count > 0 && <Link to={`/batches/${b.batch_id}/storage`} className="btn-secondary" data-testid="passport-storage-link"><LineChart size={18} /> Storage</Link>}
         {b.inspection_count > 0 && <Link to={`/reports/${b.batch_id}`} className="btn-secondary" data-testid="passport-report-link"><FileText size={18} /> Report</Link>}
         {canAct && b.inspection_count > 0 && <Link to={`/batches/${b.batch_id}/dispatch`} className="btn-secondary" data-testid="passport-dispatch-link"><Truck size={18} /> Dispatch</Link>}
+        {canAct && <EditBatchDialog batch={b} onSaved={load} />}
       </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

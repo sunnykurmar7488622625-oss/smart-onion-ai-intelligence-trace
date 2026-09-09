@@ -32,7 +32,7 @@ export default function CameraVision() {
     setStarting(true);
     stop();
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: mode }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -131,6 +131,13 @@ export default function CameraVision() {
             <li>3. Analyze → review Grade A / URS</li>
             <li>4. Save to batch → report is ready</li>
           </ol>
+          <div className="rounded-xl bg-subtle p-3 text-xs text-stone-600 space-y-1" data-testid="camera-accuracy-tips">
+            <p className="font-bold uppercase tracking-wider text-stone-500">For accurate results</p>
+            <p>· Spread onions in a single layer, not a heap</p>
+            <p>· Hold steady 30–50 cm above, fill the frame</p>
+            <p>· Daylight or bright even light, no harsh shadows</p>
+            <p>· Include 10–30 onions per frame; scan more frames for big lots</p>
+          </div>
           <p className="text-xs text-stone-400">Capture → analyse workflow. The AI runs on the server after each capture; nothing is faked in real time.</p>
         </div>
       </div>

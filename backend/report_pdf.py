@@ -1,3 +1,4 @@
+import base64
 import io
 from datetime import datetime
 
@@ -5,7 +6,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 BRAND = colors.HexColor("#701A2D")
 INK = colors.HexColor("#1C1917")
@@ -39,13 +40,23 @@ def build_pdf(report: dict) -> bytes:
     status = report.get("overall_status", "REVIEW REQUIRED")
     status_style = ParagraphStyle("status", parent=body, fontName="Helvetica-Bold", fontSize=14, textColor=STATUS_COLORS.get(status, INK))
 
+    qr_cell = Paragraph("", small)
+    if report.get("qr_code"):
+        qr_cell = RLImage(io.BytesIO(base64.b64decode(report["qr_code"])), width=26 * mm, height=26 * mm)
     story = [
         Paragraph("ONION<font color='#059669'>AI</font>", h_brand),
         Paragraph("Smart Quality. Trusted Trade. &nbsp;|&nbsp; Standardized Digital Quality Report", tagline),
         Table(
-            [[Paragraph(f"<b>Batch</b> {report['batch_id']}", body), Paragraph(f"<b>Verification ID</b> {report['verification_id']}", body), Paragraph(status, status_style)]],
-            colWidths=[60 * mm, 70 * mm, 44 * mm],
-            style=TableStyle([("LINEBELOW", (0, 0), (-1, -1), 1, BRAND), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]),
+            [
+                [
+                    Paragraph(f"<b>Batch</b> {report['batch_id']}<br/><br/><b>Verification ID</b> {report['verification_id']}", body),
+                    Paragraph(status, status_style),
+                    qr_cell,
+                    Paragraph("Scan to verify this record on the ONIONAI Buyer Verification page", small),
+                ]
+            ],
+            colWidths=[70 * mm, 40 * mm, 28 * mm, 36 * mm],
+            style=TableStyle([("LINEBELOW", (0, 0), (-1, -1), 1, BRAND), ("BOTTOMPADDING", (0, 0), (-1, -1), 8), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]),
         ),
         Paragraph("Batch Details", h2),
     ]

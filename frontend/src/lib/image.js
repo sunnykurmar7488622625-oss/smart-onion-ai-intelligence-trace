@@ -1,4 +1,4 @@
-const MAX_SIDE = 1280;
+const MAX_SIDE = 1600;
 
 export const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {

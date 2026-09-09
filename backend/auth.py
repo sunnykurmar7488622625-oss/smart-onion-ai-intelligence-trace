@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, Request
 from database import db
 
 ALGO = "HS256"
-PUBLIC_FIELDS = ("id", "name", "email", "role", "organization", "created_at")
+PUBLIC_FIELDS = ("id", "name", "email", "role", "organization", "phone", "created_at")
 
 
 def hash_password(password: str) -> str:

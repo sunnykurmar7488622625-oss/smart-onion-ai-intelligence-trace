@@ -26,19 +26,21 @@ SYSTEM_PROMPT = (
     "procurement centres. You analyse photographs of onions and return strict JSON only, never prose."
 )
 USER_PROMPT = (
-    "Inspect this photograph. Detect every clearly visible individual onion. For each onion return a "
-    "bounding box normalised to the image as [x, y, width, height] with values between 0 and 1, and "
-    "classify it into exactly ONE label:\n"
-    "- good: clean, firm, intact dry skin, normal market size\n"
-    "- damaged: cuts, bruises, cracks, peeled or missing skin, mechanical injury\n"
-    "- rotten: black/soft mould, decay, wet or sunken patches\n"
-    "- sprouted: green shoot emerging from the neck\n"
-    "- undersized: clearly small compared to normal market onions (under ~40mm)\n"
-    "- oversized: very large jumbo onion (over ~80mm)\n"
-    "If the image is a dense pile, sample the clearly distinguishable onions (up to 40). "
+    "Inspect this photograph carefully like a procurement-centre grader. Detect every clearly visible individual onion "
+    "(ignore partially hidden onions at the edges). For each onion return a tight bounding box normalised to the image as "
+    "[x, y, width, height] with values between 0 and 1, and classify it into exactly ONE label using these rules in order:\n"
+    "1. rotten: black/grey soft mould, decay, wet, sunken or oozing patches, collapsed neck\n"
+    "2. sprouted: a green or white shoot clearly emerging from the neck\n"
+    "3. damaged: cuts, bruises, cracks, deep splits, peeled or missing outer skin exposing flesh, mechanical injury. "
+    "Do NOT count normal loose papery skin or dust as damage\n"
+    "4. undersized: clearly small relative to the other onions in the frame or a visible reference (roughly under 40mm)\n"
+    "5. oversized: clearly jumbo relative to the others (roughly over 80mm)\n"
+    "6. good: clean, firm, intact dry skin, well-cured neck, normal market size\n"
+    "Be conservative: only assign a defect when the evidence is clearly visible; if unsure between good and a defect prefer good "
+    "but lower the confidence. In a dense pile, sample the clearly distinguishable onions (up to 40). "
     "If no onions are present set is_onion_image to false and return an empty list.\n"
     'Respond ONLY with JSON in this exact shape: {"is_onion_image": true, "onions": [{"box": [0.1, 0.2, 0.3, 0.3], '
-    '"label": "good", "confidence": 0.92}], "notes": "one short sentence about visible quality"}'
+    '"label": "good", "confidence": 0.92}], "notes": "one short sentence about lighting, framing and visible quality"}'
 )
 
 
@@ -232,7 +234,7 @@ async def analyze_llm(img: Image.Image, provider: str, model: str, api_key: str)
     chat = LlmChat(api_key=api_key, session_id=f"onion-{uuid.uuid4()}", system_message=SYSTEM_PROMPT).with_model(
         provider, model
     )
-    message = UserMessage(text=USER_PROMPT, file_contents=[ImageContent(image_base64=to_jpeg_b64(img, 1024, 85))])
+    message = UserMessage(text=USER_PROMPT, file_contents=[ImageContent(image_base64=to_jpeg_b64(img, 1280, 90))])
     text = await chat.send_message(message)
     return _parse_llm_json(text)
 

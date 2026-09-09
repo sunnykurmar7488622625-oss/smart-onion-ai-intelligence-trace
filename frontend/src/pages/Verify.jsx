@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Search, ShieldCheck, ShieldX } from "lucide-react";
+import { ArrowLeft, Loader2, ScrollText, Search, ShieldCheck, ShieldX } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg } from "@/lib/api";
@@ -16,14 +16,14 @@ export default function Verify() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const lookup = async (e) => {
+  const lookup = async (e, value = code) => {
     e?.preventDefault();
-    if (!code.trim()) return;
+    if (!value.trim()) return;
     setBusy(true);
     setError("");
     setRecord(null);
     try {
-      const { data } = await api.get(`/verify/${encodeURIComponent(code.trim())}`);
+      const { data } = await api.get(`/verify/${encodeURIComponent(value.trim())}`);
       setRecord(data);
     } catch (err) {
       setError(errMsg(err, "No verified quality record found"));
@@ -31,6 +31,12 @@ export default function Verify() {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    const id = params.get("id");
+    if (id) lookup(null, id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -82,6 +88,7 @@ export default function Verify() {
                 <div className="flex flex-col items-end gap-2">
                   <StatusBadge status={record.overall_status} className="!text-sm !px-4 !py-1.5" testId="verify-status" />
                   <StatusBadge status={record.batch_status} />
+                  {user && <Link to={`/batches/${record.batch_id}`} className="btn-secondary !py-2 !min-h-[44px] text-sm mt-1" data-testid="verify-passport-link"><ScrollText size={16} /> Open batch passport</Link>}
                 </div>
               </div>
               <GradeSummary metrics={record} />

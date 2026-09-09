@@ -18,9 +18,15 @@ export const ReportDocument = ({ r }) => (
           <p className="text-xs text-stone-500">Smart Quality. Trusted Trade. · Standardized Digital Quality Report</p>
         </div>
       </div>
-      <div className="text-right">
+      <div className="text-right flex flex-col items-end gap-2">
         <StatusBadge status={r.overall_status} className="!text-sm !px-4 !py-1.5" testId="report-status" />
-        <p className="mt-2 font-mono text-xs text-stone-500">Verification ID <span className="font-bold text-ink" data-testid="report-verification-id">{r.verification_id}</span></p>
+        <p className="font-mono text-xs text-stone-500">Verification ID <span className="font-bold text-ink" data-testid="report-verification-id">{r.verification_id}</span></p>
+        {r.qr_code && (
+          <div className="flex items-center gap-3 rounded-xl border border-stone-200 p-2" data-testid="report-qr">
+            <img src={`data:image/png;base64,${r.qr_code}`} alt="QR code to verify this report" className="h-24 w-24" data-testid="report-qr-image" />
+            <p className="max-w-[120px] text-left text-[11px] leading-snug text-stone-500">Scan to open the verified record on any phone</p>
+          </div>
+        )}
       </div>
     </header>
 

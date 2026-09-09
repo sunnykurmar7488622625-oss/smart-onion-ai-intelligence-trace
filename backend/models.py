@@ -12,6 +12,7 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=6, max_length=128)
     role: Role = "farmer"
     organization: Optional[str] = Field(default="", max_length=120)
+    phone: Optional[str] = Field(default="", max_length=20, pattern=r"^(\+?[0-9]{8,15})?$")
 
 
 class LoginIn(BaseModel):
@@ -22,6 +23,7 @@ class LoginIn(BaseModel):
 class ProfileUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2, max_length=80)
     organization: Optional[str] = Field(default=None, max_length=120)
+    phone: Optional[str] = Field(default=None, max_length=20, pattern=r"^(\+?[0-9]{8,15})?$")
 
 
 class BatchCreate(BaseModel):

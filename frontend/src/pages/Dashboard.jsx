@@ -87,6 +87,7 @@ export default function Dashboard() {
                     {a.grade_a_drop > 0 && <span className="text-xs font-bold text-red-700">−{a.grade_a_drop} pts</span>}
                   </div>
                   <p className="mt-1 text-sm text-stone-700 leading-snug">{a.message}</p>
+                  {a.sms && <p className="mt-1 text-xs font-semibold text-stone-500" data-testid={`alert-sms-${a.batch_id}`}>{a.sms.status === "SENT" ? "SMS sent to farmer" : a.sms.status === "MOCKED" ? "SMS alert logged (mocked sender)" : a.sms.status === "NO_PHONE" ? "SMS skipped — no phone on profile" : "SMS failed"}</p>}
                   <Link to={`/batches/${a.batch_id}/storage`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">View storage <ArrowRight size={14} /></Link>
                 </li>
               ))}

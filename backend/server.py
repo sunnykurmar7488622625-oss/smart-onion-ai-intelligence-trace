@@ -40,7 +40,11 @@ from models import (  # noqa: E402
 )
 from report_pdf import build_pdf  # noqa: E402
 from seed import seed_demo_data  # noqa: E402
+from sms_service import send_sms, sms_config  # noqa: E402
 from vision_service import ImageValidationError, analyze_images, decode_image, provider_config, to_jpeg_b64  # noqa: E402
+import base64  # noqa: E402
+import io  # noqa: E402
+import qrcode  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("onionai")
@@ -63,6 +67,21 @@ def now_iso() -> str:
 
 def new_id() -> str:
     return str(uuid.uuid4())
+
+
+def app_base_url(request: Request) -> str:
+    return (os.environ.get("PUBLIC_APP_URL") or request.headers.get("origin") or "").rstrip("/")
+
+
+def verify_url_for(base_url: str, verification_id: str) -> str:
+    return f"{base_url}/verify?id={verification_id}"
+
+
+def make_qr_b64(url: str) -> str:
+    img = qrcode.make(url, box_size=8, border=2).get_image()
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def snapshot_of(insp: dict) -> dict:
@@ -132,6 +151,7 @@ async def register(body: RegisterIn):
         "password_hash": hash_password(body.password),
         "role": body.role,
         "organization": (body.organization or "").strip(),
+        "phone": (body.phone or "").strip(),
         "is_demo": False,
         "created_at": now_iso(),
     }
@@ -176,6 +196,25 @@ async def logout(response: Response):
 async def ai_status(user: dict = Depends(get_current_user)):
     cfg = provider_config()
     return {"provider": cfg["provider"], "model": cfg["model"], "connected": cfg["connected"]}
+
+
+@api.get("/system/sms-status")
+async def sms_status(user: dict = Depends(get_current_user)):
+    cfg = sms_config()
+    return {"provider": cfg["provider"], "connected": cfg["connected"], "mocked": not cfg["connected"], "phone_configured": bool(user.get("phone"))}
+
+
+@api.get("/alerts")
+async def list_alerts(user: dict = Depends(get_current_user)):
+    return await db.sms_alerts.find({"user_id": user["id"]}, NO_ID).sort("created_at", -1).to_list(100)
+
+
+@api.post("/alerts/test", status_code=201)
+async def send_test_alert(request: Request, user: dict = Depends(require_role("farmer"))):
+    if not user.get("phone"):
+        raise HTTPException(status_code=400, detail="Add your mobile number to your profile first")
+    message = f"ONIONAI test alert: SMS alerts are active for {user['name']}. You will be texted when a batch starts losing Grade A in storage. {app_base_url(request)}/dashboard"
+    return await send_sms(user, "TEST", message, kind="TEST")
 
 
 # ---------------------------------------------------------------- batches
@@ -327,7 +366,7 @@ async def analyze_inspection(body: AnalyzeIn, user: dict = Depends(require_role(
 
 
 @api.post("/inspections", status_code=201)
-async def save_inspection(body: InspectionCreate, user: dict = Depends(require_role("farmer"))):
+async def save_inspection(body: InspectionCreate, request: Request, user: dict = Depends(require_role("farmer"))):
     pending = await db.pending_analyses.find_one({"id": body.analysis_id, "user_id": user["id"]}, NO_ID)
     if not pending:
         raise HTTPException(status_code=404, detail="Analysis not found or expired. Please analyse the images again")
@@ -386,24 +425,32 @@ async def save_inspection(body: InspectionCreate, user: dict = Depends(require_r
     )
     latest = snapshot_of(insp)
     first = batch.get("first") or latest
-    await db.batches.update_one(
-        {"batch_id": batch["batch_id"]},
-        {
-            "$set": {
-                "latest": latest,
-                "first": first,
-                "quality_trend": trend_of(first, latest),
-                "status": "INSPECTED",
-                "inspection_count": batch.get("inspection_count", 0) + 1,
-                "storage_days": max(batch.get("storage_days", 0), day),
-                "verification_id": batch.get("verification_id") or f"OAI-{uuid.uuid4().hex[:8].upper()}",
-                "updated_at": ts,
-            }
-        },
-    )
+    new_trend = trend_of(first, latest)
+    verification_id = batch.get("verification_id") or f"OAI-{uuid.uuid4().hex[:8].upper()}"
+    changes = {
+        "latest": latest,
+        "first": first,
+        "quality_trend": new_trend,
+        "status": "INSPECTED",
+        "inspection_count": batch.get("inspection_count", 0) + 1,
+        "storage_days": max(batch.get("storage_days", 0), day),
+        "verification_id": verification_id,
+        "updated_at": ts,
+    }
+    alert = None
+    if new_trend == "declining" and batch.get("quality_trend") != "declining":
+        message = (
+            f"ONIONAI alert: Batch {batch['batch_id']} ({batch['variety']}) is losing quality in storage. "
+            f"Grade A {first['grade_a']}% -> {latest['grade_a']}% (Day {first['inspection_day']} -> Day {day}), "
+            f"defects {first['defective']}% -> {latest['defective']}%. Consider reinspection before dispatch. "
+            f"{verify_url_for(app_base_url(request), verification_id)}"
+        )
+        alert = await send_sms(user, batch["batch_id"], message)
+        changes["decline_alert"] = {"sent_at": ts, "status": alert["status"], "provider": alert["provider"]}
+    await db.batches.update_one({"batch_id": batch["batch_id"]}, {"$set": changes})
     await db.pending_analyses.delete_one({"id": body.analysis_id})
     insp.pop("images")
-    return insp
+    return {**insp, "decline_alert": alert}
 
 
 @api.get("/inspections/one/{inspection_id}")
@@ -557,7 +604,7 @@ async def complete_dispatch(batch_id: str, user: dict = Depends(require_role("fa
 
 
 # ---------------------------------------------------------------- reports
-async def build_report_data(batch: dict) -> dict:
+async def build_report_data(batch: dict, base_url: str = "") -> dict:
     inspections = await db.inspections.find({"batch_id": batch["batch_id"]}, NO_IMAGES).sort("created_at", 1).to_list(200)
     if not inspections:
         raise HTTPException(status_code=404, detail="No inspection has been completed for this batch yet")
@@ -571,10 +618,13 @@ async def build_report_data(batch: dict) -> dict:
         dispatch_info = {"status": "DISPATCHED", "label": "Dispatched", "at": batch.get("dispatched_at"), "remarks": dispatch.get("remarks") if dispatch else ""}
     elif dispatch:
         dispatch_info = {"status": dispatch["status"], "label": DISPATCH_LABELS[dispatch["status"]], "at": dispatch["verified_at"], "remarks": dispatch.get("remarks", ""), "verified_by_name": dispatch.get("verified_by_name")}
+    verify_url = verify_url_for(base_url, batch["verification_id"]) if base_url else ""
     return {
         "brand": "ONIONAI",
         "tagline": "Smart Quality. Trusted Trade.",
         "verification_id": batch["verification_id"],
+        "verify_url": verify_url,
+        "qr_code": make_qr_b64(verify_url) if verify_url else None,
         "batch_id": batch["batch_id"],
         "supplier": batch["supplier_name"],
         "procurement_center": batch["procurement_center"],
@@ -618,9 +668,9 @@ async def build_report_data(batch: dict) -> dict:
     }
 
 
-async def get_report(batch: dict) -> dict:
-    data = await build_report_data(batch)
-    report = {"id": new_id(), "batch_id": batch["batch_id"], "batch_ref": batch["id"], "verification_id": batch["verification_id"], "generated_at": data["generated_at"], "report_data": data}
+async def get_report(batch: dict, base_url: str) -> dict:
+    data = await build_report_data(batch, base_url)
+    report = {"id": new_id(), "batch_id": batch["batch_id"], "batch_ref": batch["id"], "verification_id": batch["verification_id"], "generated_at": data["generated_at"], "report_data": {k: v for k, v in data.items() if k != "qr_code"}}
     await db.reports.update_one({"batch_id": batch["batch_id"]}, {"$set": {k: v for k, v in report.items() if k != "id"}, "$setOnInsert": {"id": report["id"]}}, upsert=True)
     return data
 
@@ -648,28 +698,28 @@ async def list_reports(user: dict = Depends(get_current_user)):
 
 
 @api.get("/reports/{batch_id}")
-async def report_json(batch_id: str, user: dict = Depends(get_current_user)):
+async def report_json(batch_id: str, request: Request, user: dict = Depends(get_current_user)):
     batch = await get_batch_or_404(batch_id, user)
-    return await get_report(batch)
+    return await get_report(batch, app_base_url(request))
 
 
 @api.get("/reports/{batch_id}/pdf")
-async def report_pdf(batch_id: str, user: dict = Depends(get_current_user)):
+async def report_pdf(batch_id: str, request: Request, user: dict = Depends(get_current_user)):
     batch = await get_batch_or_404(batch_id, user)
-    data = await get_report(batch)
+    data = await get_report(batch, app_base_url(request))
     pdf = build_pdf(data)
     return Response(content=pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="ONIONAI-{batch["batch_id"]}-quality-report.pdf"'})
 
 
 # ------------------------------------------------------------ verification
 @api.get("/verify/{code}")
-async def verify_public(code: str):
+async def verify_public(code: str, request: Request):
     key = code.strip().upper()
     batch = await db.batches.find_one({"$or": [{"batch_id": key}, {"verification_id": key}]}, NO_ID)
     if not batch or batch.get("inspection_count", 0) == 0:
         raise HTTPException(status_code=404, detail="No verified quality record found for this ID")
-    data = await build_report_data(batch)
-    for field in ("counts", "inspection_id", "ai_model"):
+    data = await build_report_data(batch, app_base_url(request))
+    for field in ("counts", "inspection_id", "ai_model", "qr_code"):
         data.pop(field, None)
     return {"verified": True, **data}
 
@@ -689,7 +739,7 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
     for b in batches:
         if b.get("quality_trend") == "declining":
             drop = round(b["first"]["grade_a"] - b["latest"]["grade_a"], 1)
-            alerts.append({"batch_id": b["batch_id"], "variety": b["variety"], "message": "Quality is declining during storage. Consider reinspection before dispatch.", "grade_a_drop": drop, "severity": "high" if drop >= 6 else "medium"})
+            alerts.append({"batch_id": b["batch_id"], "variety": b["variety"], "message": "Quality is declining during storage. Consider reinspection before dispatch.", "grade_a_drop": drop, "severity": "high" if drop >= 6 else "medium", "sms": b.get("decline_alert")})
         elif b["status"] == "REINSPECTION_REQUIRED":
             alerts.append({"batch_id": b["batch_id"], "variety": b["variety"], "message": "Reinspection required before this batch can be dispatched.", "grade_a_drop": 0, "severity": "medium"})
 
@@ -746,6 +796,7 @@ async def on_startup():
     await db.storage_records.create_index([("batch_id", 1), ("day", 1)])
     await db.login_attempts.create_index("identifier")
     await db.pending_analyses.create_index("expires_at", expireAfterSeconds=0)
+    await db.sms_alerts.create_index([("user_id", 1), ("created_at", -1)])
     await seed_demo_data()
     logger.info("ONIONAI ready · AI provider: %s", provider_config()["provider"])
 
